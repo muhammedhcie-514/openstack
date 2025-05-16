@@ -1,0 +1,36 @@
+Step 1 Install the OpenStack client.
+pip install python-openstackclient -c https://releases.openstack.org/constraints/upper/master
+Import environment variables.
+source /etc/kolla/admin-openrc.sh
+Verify client installation and environment variable activation.
+openstack --version
+openstack availability zone list
+
+Step 2 Check compute resources.
+The cluster should contain a compute node as planned. If the deployment is successful,
+the following information will be displayed:
+openstack hypervisor list
+If the compute node is missing, verify that all automated deployment operations are
+successful. If any operation fails, redeploy the node and ensure all components are
+deployed.
+
+Step 3 Check storage resources.
+The backend storage of the cluster should contain a resource pool provided by RADOS
+Block Device (RBD) as planned. Run the following command to check the resource pool
+status:
+openstack volume service list
+If the resource pool status is normal, the following information will be displayed:
+openstack volme service list
+
+
+Otherwise, check whether the configuration in section 3.3.3 is correct and whether the
+following content in global.yml corresponds to the configuration in section 3.3.3:
+After the faults are rectified, perform the deployment again.
+
+
+
+Step 4 Check the user interface.
+Access the Skyline dashboard through http://192.168.1.131:9999 to check the status of
+OpenStack services.
+
+
