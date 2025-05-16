@@ -1,0 +1,163 @@
+3.2.1 Preparing Configuration Files
+Step 1 Prepare files.
+Create the /etc/kolla directory and copy the template files provided by Kolla to it.
+mkdir -p /etc/kollachown $USER:$USER /etc/kolla
+cp -r kolla-ansible/etc/kolla/* /etc/kolla
+cp kolla-ansible/ansible/inventory/* .
+Install dependencies for Ansible Galaxy.
+kolla-ansible install-deps
+Step 2 Edit the Ansible host inventory.
+Multiple ECSs are used in this exercise. You need to modify the template file for multinode deployment by referring to the following content:
+[control]
+# These hostname must be resolvable from your deployment host
+controller
+# The above can also be specified as follows:
+#control[01:03] ansible_user=kolla
+# The network nodes are where your l3-agent and loadbalancers will run
+# This can be the same as a host in the control group
+[network]
+network01
+[compute]
+compute01
+[monitoring]
+controller
+# When compute nodes and controller nodes use different interfaces,
+# you need to comment out "api_interface" and other interfaces from the globals.yml
+# and specify like below:
+#compute01 neutron_external_interface=eth0 api_interface=em1 tunnel_interface=em1
+[storage]
+compute01
+[deployment]
+localhost ansible_connection=local
+Keep the rest file content unchanged.
+
+
+
+Step 3 Edit the configuration file.
+Modify the global.yml file for installing OpenStack by referring to the following content.
+........
+25 workaround_ansible_issue_8743: yes
+.......
+48 kolla_base_distro: "rocky"
+49
+50 # Do not override this unless you know what you are doing.
+51 openstack_release: "master"
+.........
+60 node_custom_config: "{{ node_config }}/config"
+......
+67 kolla_internal_vip_address: "192.168.1.131"
+........
+137 network_interface: "ens192"
+........
+166 neutron_external_interface: "ens224"
+........
+172 neutron_plugin_agent: "openvswitch"
+........
+311 enable_openstack_core: "yes"
+312
+313 # These roles are required for Kolla to be operation, however a savvy deployer
+314 # could disable some of these required roles and run their own services.
+315 enable_glance: "{{ enable_openstack_core | bool }}"
+316 #enable_hacluster: "no"
+317 enable_haproxy: "no"
+318 #enable_keepalived: "{{ enable_haproxy | bool }}"
+319 enable_keystone: "{{ enable_openstack_core | bool }}"
+320 #enable_mariadb: "yes"
+321 #enable_memcached: "yes"
+322 enable_neutron: "{{ enable_openstack_core | bool }}"
+323 enable_nova: "{{ enable_openstack_core | bool }}"
+324 enable_rabbitmq: "{{ 'yes' if om_rpc_transport == 'rabbit' or om_notify_transport == 'rabbit'
+else 'no' }}"
+........
+337 enable_cinder: "yes"
+338 enable_cinder_backup: "yes"
+.......
+360 enable_heat: "{{ enable_openstack_core | bool }}"
+361 enable_horizon: "{{ enable_openstack_core | bool }}"
+.......
+390 enable_manila: "yes"
+........
+393 enable_manila_backend_cephfs_native: "yes"
+......
+432 enable_skyline: "yes"
+......
+479 #######################
+480 # External Ceph options
+481 #######################
+482 # External Ceph - cephx auth enabled (this is the standard nowadays, defaults to yes)
+483 #external_ceph_cephx_enabled: "yes"
+484
+485 # Glance
+486 ceph_glance_user: "glance"
+487 ceph_glance_keyring: "client.{{ ceph_glance_user }}.keyring"
+488 ceph_glance_pool_name: "images"
+489 # Cinder
+490 ceph_cinder_user: "cinder"
+491 ceph_cinder_keyring: "client.{{ ceph_cinder_user }}.keyring"
+492 ceph_cinder_pool_name: "volumes"
+493 #ceph_cinder_backup_user: "cinder-backup"
+494 #ceph_cinder_backup_keyring: "client.{{ ceph_cinder_backup_user }}.keyring"
+495 #ceph_cinder_backup_pool_name: "backups"
+496 # Nova
+497 ceph_nova_keyring: "{{ ceph_cinder_keyring }}"
+498 #ceph_nova_user: "nova"
+499 #ceph_nova_pool_name: "vms"
+500 # Gnocchi
+501 #ceph_gnocchi_user: "gnocchi"
+502 #ceph_gnocchi_keyring: "client.{{ ceph_gnocchi_user }}.keyring"
+503 #ceph_gnocchi_pool_name: "gnocchi"
+
+
+504 # Manila
+505 ceph_manila_user: "manila"
+506 ceph_manila_keyring: "client.{{ ceph_manila_user }}.keyring"
+........
+527 ########################
+528 # Glance - Image Options
+529 ########################
+530 # Configure image backend.
+531 glance_backend_ceph: "yes"
+........
+574 ################################
+575 # Cinder - Block Storage Options
+576 ################################
+577 # Enable / disable Cinder backends
+578 cinder_backend_ceph: "yes"
+.......
+586 cinder_backup_driver: "ceph"
+......
+624 nova_compute_virt_type: "kvm"
+......
+639 nova_console: "novnc"
+......
+695 manila_cephfs_filesystem_name: cephfs
+
+
+3.2.2 Preparing Ansible for Deployment
+Step 1 Configure SSH password-free login.
+Use the ssh-keygen and ssh-copy-id commands to configure password-free SSH login
+from the deployment node (controller node in this exercise) to the compute nodes and
+network node.
+Step 2 Configure host name resolution.
+Kolla configures host name resolution during the preconfiguration. Perform the following
+operations only on the deployment node control01 unless otherwise specified. The IP
+addresses are the management addresses of the nodes.
+cat > /etc/hosts <<EOF
+192.168.1.131 controller
+192.168.1.133 network01
+192.168.1.132 compute01
+EOF
+Step 3 Verify the connectivity between hosts.
+ansible -i multinode all -m ping
+
+
+
+Step 4 Generate a password for Kolla.
+The following commands generate a password in /etc/kolla/passwords.yml and change
+the value of keystone_admin_password to kolla.
+kolla-genpwd
+sed -i 's#keystone_admin_password:.*#keystone_admin_password: kolla#g' /etc/kolla/passwords.yml
+
+
+
+
