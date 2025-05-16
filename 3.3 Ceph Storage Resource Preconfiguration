@@ -1,0 +1,86 @@
+The backend resource pools of Glance, Cinder, Cinder-backup, and Manila are previously
+defined in global.yml. This section guides you through creating corresponding resource
+pools in Ceph and generating their respective keyring files. These resource pools include:
+Glance resource pool images with user glance
+Cinder resource pool volumes with user cinder
+Cinder-backup resource pool backups with user cinder-backup
+Manila resource pool cephfs with user manila
+
+3.3.1 Creating Resource Pools
+Create required resource pools.
+##### Creating the Glance resource pool
+ceph osd pool create glance
+ceph osd pool application enable glance rbd
+ceph auth add client.glance mon 'allow r' osd 'allow rwx pool=glance'
+##### Creating the Cinder resource pool
+ceph osd pool create volumes
+ceph osd pool application enable volumes rbd
+ceph auth add client.cinder mon 'allow r' osd 'allow rwx pool=volumes'
+ceph osd pool create backups
+ceph osd pool application enable backups rbd
+ceph auth add client.cinder-backup mon 'allow r' osd 'allow rwx pool=backups'
+##### Creating the Manila resource pool
+ceph osd pool create metadata_cephfs
+ceph osd pool create data_cephfs
+ceph fs new cephfs metadata_cephfs data_cephfs
+ceph orch apply mds cephfs --placement="2" 
+
+
+
+3.3.2 Creating and Exporting Keyring Files
+Run the following commands to create and export keyring files:
+ceph auth get client.glance -o ceph.client.glance.keyring
+ceph auth get client.cinder -o ceph.client.cinder.keyring
+ceph auth get client.cinder-backup -o ceph.client.cinder-backup.keyring
+ceph auth get-or-create client.manila -o ceph.clinetmanila.keyring mgr 'allow rw' mon 'allow r
+
+
+
+3.3.3 Adding Ceph-related Configurations
+Step 1 Add Glance-related configurations.
+Create the /etc/kolla/config/glance directory and create ceph.conf in it with the
+following content:
+[global]
+fsid = 306410d2-e503-11ee-86f8-xxxxxxxxxx
+keyring = /etc/ceph/ceph.client.glance.keyring
+mon_initial_members = ceph-0
+mon_host = 192.168.1.134
+auth_cluster_required = cephx
+auth_service_required = cephx
+auth_client_required = cephx
+In addition, copy the Glance keyring file created in section 3.3.2 to this directory.
+
+
+Step 2 Add Cinder-related configurations.
+Create the /etc/kolla/config/cinder directory and create subdirectories cinder-backup
+and cinder-volume in it. Then, create ceph.conf in the three directories with the
+following content:
+[global]
+fsid = 306410d2-e503-11ee-86f8-xxxxxxxxxxx
+mon_initial_members = ceph-0
+mon_host = 192.168.1.134
+auth_cluster_required = cephx
+auth_service_required = cephx
+auth_client_required = cephx
+Copy the Cinder keyring files, ceph.client.cinder.keyring and ceph.client.cinderbackup.keyring (created in section 3.3.2), to cinder-volume and cinder-backup,
+respectively.
+Create the /etc/kolla/config/nova directory and copy ceph.client.cinder.keyring to it.
+
+
+
+Step 3 Add Manila-related configurations.
+Create the /etc/kolla/config/manila directory and create ceph.conf in it with the
+following content:
+[global]
+fsid = 306410d2-e503-11ee-86f8-xxxxxxxxxxx
+mon_initial_members = ceph-0
+mon_host = 192.168.1.134
+auth_cluster_required = cephx
+auth_service_required = cephx
+auth_client_required = cephx
+Create the /etc/kolla/config/manila/manila-share directory and copy
+ceph.clinetmanila.keyring created in section 3.3.2 to it.
+
+
+
+
