@@ -1,0 +1,50 @@
+3.1.1 Installing Dependencies
+pip is required for Kolla installation. Install pip first.
+Step 1 Update packages.
+yum -y update
+
+Step 2 Install dependencies for Python.
+sudo dnf install git python3-devel libffi-devel gcc openssl-devel python3-libselinux
+
+
+Step 3 Configure the pip environment.
+Configure the pip source on the control01 node.
+mkdir ~/.pip
+cat >> ~/.pip/pip.conf <<EOF
+[global]
+index-url = https://pypi.tuna.tsinghua.edu.cn/simple
+[install]
+trusted-host = https://pypitunatsinghuaedu.cn
+EOF
+
+
+Check whether the configuration takes effect.
+
+pip3 config list 
+
+Step 4 Install a virtual environment.
+Create and activate a virtual environment. The activated virtual environment should
+depend on the packages installed within it.
+python3 -m venv /path/to/venv
+source /path/to/venv/bin/activate
+
+
+Step 5 Upgrade pip.
+pip install -U pip
+
+3.1.2 Installing Kolla
+Step 1 Install Ansible.
+Install the Ansible version required by Kolla.
+pip install 'ansible-core>=2.15,<2.16'
+Step 2 Install the OpenStack package of the master branch
+
+
+Installing from source code can be time-consuming. Retry if network issues disrupt the
+process.
+pip install git+https://opendev.org/openstack/kolla-ansible@s@master
+If the installation is successful, the following information will be displayed.
+
+Step 3 Install dependencies for Kolla and Kolla Ansible.
+pip install ./kolla-ansible
+After installation, proceed to Kolla Ansible preconfiguration
+
