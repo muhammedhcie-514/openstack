@@ -1,0 +1,19 @@
+Step 1 Install dependencies for Kolla before installing OpenStack.
+kolla-ansible -i multinode bootstrap-servers
+This command is required for all subsequent upgrade and reconfiguration operations.
+Step 2 Check the configurations before installing OpenStack.
+kolla-ansible -i multimode prechecks
+Step 3 (Optional) Pull the image.
+
+You are advised to download the required container image to the deployment node
+before installation. This will ensure smooth installation and enable you to access running
+reports.
+kolla-ansible -i multimode pull
+Step 4 Install OpenStack.
+kolla-ansible -i multimode deploy
+Step 5 Perform post-installation configuration to generate required environment variables.
+kolla-ansible post-deploy
+After the command is executed, you can check the generated environment variable in
+/etc/kolla/admin-openrc.sh.
+
+ls /etc/kolla/
